@@ -129,7 +129,9 @@ class MerkleTrie {
 
     try {
       await db.open();
+      console.log("Opened RocksDB");
     } catch (e) {
+      console.log("Error opening RocksDB !!!!!!!!!", e);
       return ok(0);
     }
 
