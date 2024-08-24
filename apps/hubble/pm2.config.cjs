@@ -7,7 +7,7 @@
  * Using pm2 allows the container to remain running and thus recover faster.
  */
 
-require("dotenv").config();
+// require("dotenv").config();
 
 module.exports = {
   apps: [
