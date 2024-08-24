@@ -126,7 +126,12 @@ class MerkleTrie {
     }
 
     const db = new RocksDB(location);
-    await db.open();
+
+    try {
+      await db.open();
+    } catch (e) {
+      return ok(0);
+    }
 
     const rootPrimaryKey = Buffer.from([RootPrefix.SyncMerkleTrieNode]);
     const rootResult = await ResultAsync.fromPromise(db.get(rootPrimaryKey), (e) => e as HubError);

@@ -638,6 +638,16 @@ export class Hub implements HubInterface {
     do {
       dbResult = await ResultAsync.fromPromise(this.rocksDB.open(), (e) => e as Error);
       if (dbResult.isErr()) {
+        if (dbResult.error.message.includes("db.internal_error/Corruption:")) {
+          log.error(
+            {
+              error: dbResult.error,
+              errorMessage: dbResult.error.message,
+            },
+            "failed to open rocksdb due to corruption. Resetting DB",
+          );
+          await this.rocksDB.destroy();
+        }
         retryCount++;
         logger.error(
           {
