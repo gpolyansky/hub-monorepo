@@ -40,7 +40,7 @@ import pino, { Bindings } from "pino";
  */
 const defaultOptions: pino.LoggerOptions = {};
 
-const MAX_BUFFERLOG_SIZE = 1_000_000;
+const MAX_BUFFERLOG_SIZE = 500;
 
 // Disable logging in tests and CI to reduce noise.
 // PLEASE SEE `logger.rs` for the equivalent in Rust as well for rust logging.

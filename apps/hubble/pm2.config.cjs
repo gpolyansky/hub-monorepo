@@ -7,6 +7,8 @@
  * Using pm2 allows the container to remain running and thus recover faster.
  */
 
+require("dotenv").config();
+
 module.exports = {
   apps: [
     {
@@ -18,8 +20,11 @@ module.exports = {
       // This is only necessary when running via PM2.
       args: process.env.HUBBLE_ARGS,
       env: {
-        "CATCHUP_SYNC_WITH_SNAPSHOT": process.env.CATCHUP_SYNC_WITH_SNAPSHOT ? (process.env.CATCHUP_SYNC_WITH_SNAPSHOT === "true") : "true",
-        "HUBBLE_NODE_ARGS": process.env.HUBBLE_NODE_ARGS || "",
+        CATCHUP_SYNC_WITH_SNAPSHOT: process.env.CATCHUP_SYNC_WITH_SNAPSHOT
+          ? process.env.CATCHUP_SYNC_WITH_SNAPSHOT === "true"
+          : "true",
+        HUBBLE_NODE_ARGS: process.env.HUBBLE_NODE_ARGS || "",
+        LOG_LEVEL: process.env.LOG_LEVEL || "info",
       },
       watch: false,
       log_type: "json",
