@@ -638,16 +638,6 @@ export class Hub implements HubInterface {
     do {
       dbResult = await ResultAsync.fromPromise(this.rocksDB.open(), (e) => e as Error);
       if (dbResult.isErr()) {
-        if (dbResult.error.message.includes("db.internal_error/Corruption:")) {
-          log.error(
-            {
-              error: dbResult.error,
-              errorMessage: dbResult.error.message,
-            },
-            "failed to open rocksdb due to corruption. Resetting DB",
-          );
-          await this.rocksDB.destroy();
-        }
         retryCount++;
         logger.error(
           {
@@ -655,11 +645,11 @@ export class Hub implements HubInterface {
             error: dbResult.error,
             errorMessage: dbResult.error.message,
           },
-          "failed to open rocksdb. Retry in 15s",
+          "failed to open rocksdb. Retry in 30m",
         );
 
-        // Sleep for 15s
-        await sleep(15 * 1000);
+        // Sleep for 30m
+        await sleep(60 * 30 * 1000);
       } else {
         break;
       }
