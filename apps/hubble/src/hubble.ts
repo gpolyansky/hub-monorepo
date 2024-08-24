@@ -99,7 +99,7 @@ import { startupCheck, StartupCheckStatus } from "./utils/startupCheck.js";
 import { AddressInfo } from "node:net";
 import { MeasureSyncHealthJobScheduler } from "./network/sync/syncHealthJob.js";
 
-import { Worker } from "worker_threads";
+import { exec } from "child_process";
 import pLimit from "p-limit";
 
 export type HubSubmitSource =
@@ -1087,48 +1087,50 @@ export class Hub implements HubInterface {
             await this.getSnapshotChunks(dbLocation, s3Bucket, latestSnapshotKeyBase, latestChunks);
 
             progressBar = addProgressBar("Decompressing chunks", latestChunks.length);
-            // let chunkCount = 0;
+            let chunkCount = 0;
+
+            // for (const chunk of latestChunks) {
+            //   await new Promise((resolve) => {
+            //     log.info({ chunk: chunk }, "Decompressing chunk");
+            //     const chunkStream = fs.createReadStream(path.join(dbLocation, "..", "tmp", chunk));
+            //     chunkStream.on("end", () => {
+            //       console.log("OLD DECOMPRESS CHUNK");
+            //       resolve(true);
+            //     });
+            //     chunkStream.pipe(gunzip, { end: false });
+            //     chunkCount += 1;
+            //     progressBar?.update(chunkCount);
+            //   });
+            // }
 
             const limit = pLimit(6);
-            console.log("Decompressing chunks");
 
-            function runWorker(chunk: string, dbLocation: string): Promise<void> {
+            function decompressChunk(chunk: string, dbLocation: string): Promise<void> {
               return new Promise((resolve, reject) => {
-                const worker = new Worker(
-                  `
-                        const { parentPort, workerData } = require('worker_threads');
-                        const fs = require('fs');
-                        const path = require('path');
-                        const zlib = require('zlib');
+                const chunkPath = path.join(dbLocation, "..", "tmp", chunk);
+                const outputPath = path.join(dbLocation, "..", "tmp", `${chunk}.decompressed`);
 
-                        const { chunk, dbLocation } = workerData;
-                        const gunzip = zlib.createGunzip();
-                        const chunkStream = fs.createReadStream(path.join(dbLocation, "..", "tmp", chunk));
+                const gunzipCommand = `gunzip -c ${chunkPath} > ${outputPath}`;
 
-                        chunkStream.pipe(gunzip).on('finish', () => {
-                          parentPort.postMessage('done');
-                        });
-                        `,
-                  { eval: true, workerData: { chunk, dbLocation } },
-                );
-
-                worker.on("message", () => resolve());
-                worker.on("error", reject);
-                worker.on("exit", (code) => {
-                  if (code !== 0) {
-                    reject(new Error(`Worker stopped with exit code ${code}`));
+                exec(gunzipCommand, (error, stdout, stderr) => {
+                  if (error) {
+                    reject(`Error decompressing ${chunk}: ${stderr}`);
+                  } else {
+                    chunkCount += 1;
+                    progressBar?.update(chunkCount);
+                    console.log("NEW DECOMPRESS CHUNK");
+                    resolve();
                   }
                 });
               });
             }
 
             async function decompressChunks(chunks: string[], dbLocation: string): Promise<void> {
-              const tasks = chunks.map((chunk) => limit(() => runWorker(chunk, dbLocation)));
+              const tasks = chunks.map((chunk) => limit(() => decompressChunk(chunk, dbLocation)));
               await Promise.all(tasks);
               console.log("All chunks decompressed");
             }
 
-            // Вызов функции разархивирования
             decompressChunks(latestChunks, dbLocation)
               .then(() => {
                 console.log("Decompression completed");
