@@ -636,7 +636,9 @@ export class Hub implements HubInterface {
     // It is possible that we can't get a lock on the DB in prod, so we retry a few times.
     // This happens if the EFS volume is not mounted yet or is still attached to another instance.
     do {
+      logger.info({ retryCount }, "attempting to open rocksdb");
       dbResult = await ResultAsync.fromPromise(this.rocksDB.open(), (e) => e as Error);
+      logger.info({ retryCount, dbResult }, "rocksdb open result");
       if (dbResult.isErr()) {
         retryCount++;
         logger.error(
