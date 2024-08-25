@@ -1089,55 +1089,18 @@ export class Hub implements HubInterface {
             progressBar = addProgressBar("Decompressing chunks", latestChunks.length);
             let chunkCount = 0;
 
-            // for (const chunk of latestChunks) {
-            //   await new Promise((resolve) => {
-            //     log.info({ chunk: chunk }, "Decompressing chunk");
-            //     const chunkStream = fs.createReadStream(path.join(dbLocation, "..", "tmp", chunk));
-            //     chunkStream.on("end", () => {
-            //       console.log("OLD DECOMPRESS CHUNK");
-            //       resolve(true);
-            //     });
-            //     chunkStream.pipe(gunzip, { end: false });
-            //     chunkCount += 1;
-            //     progressBar?.update(chunkCount);
-            //   });
-            // }
-
-            const limit = pLimit(6);
-
-            function decompressChunk(chunk: string, dbLocation: string): Promise<void> {
-              return new Promise((resolve, reject) => {
-                const chunkPath = path.join(dbLocation, "..", "tmp", chunk);
-                const outputPath = path.join(dbLocation, "..", "tmp", `${chunk}.decompressed`);
-
-                const gunzipCommand = `gunzip -c ${chunkPath} > ${outputPath}`;
-
-                exec(gunzipCommand, (error, stdout, stderr) => {
-                  if (error) {
-                    reject(`Error decompressing ${chunk}: ${stderr}`);
-                  } else {
-                    chunkCount += 1;
-                    progressBar?.update(chunkCount);
-                    console.log("NEW DECOMPRESS CHUNK");
-                    resolve();
-                  }
+            for (const chunk of latestChunks) {
+              await new Promise((resolve) => {
+                log.info({ chunk: chunk }, "Decompressing chunk");
+                const chunkStream = fs.createReadStream(path.join(dbLocation, "..", "tmp", chunk));
+                chunkStream.on("end", () => {
+                  resolve(true);
                 });
+                chunkStream.pipe(gunzip, { end: false });
+                chunkCount += 1;
+                progressBar?.update(chunkCount);
               });
             }
-
-            async function decompressChunks(chunks: string[], dbLocation: string): Promise<void> {
-              const tasks = chunks.map((chunk) => limit(() => decompressChunk(chunk, dbLocation)));
-              await Promise.all(tasks);
-              console.log("All chunks decompressed");
-            }
-
-            decompressChunks(latestChunks, dbLocation)
-              .then(() => {
-                console.log("Decompression completed");
-              })
-              .catch((err) => {
-                console.error("Decompression failed:", err);
-              });
 
             fs.rmdir(path.join(dbLocation, "..", "tmp"), { recursive: true }, () => {});
           } else {
