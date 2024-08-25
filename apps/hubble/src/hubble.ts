@@ -99,9 +99,6 @@ import { startupCheck, StartupCheckStatus } from "./utils/startupCheck.js";
 import { AddressInfo } from "node:net";
 import { MeasureSyncHealthJobScheduler } from "./network/sync/syncHealthJob.js";
 
-import { exec } from "child_process";
-import pLimit from "p-limit";
-
 export type HubSubmitSource =
   | "gossip"
   | "rpc"
@@ -1101,6 +1098,8 @@ export class Hub implements HubInterface {
                 progressBar?.update(chunkCount);
               });
             }
+
+            gunzip.end();
 
             fs.rmdir(path.join(dbLocation, "..", "tmp"), { recursive: true }, () => {});
           } else {
